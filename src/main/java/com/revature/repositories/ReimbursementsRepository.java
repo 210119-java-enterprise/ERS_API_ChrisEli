@@ -7,11 +7,11 @@ import com.revature.models.ReimbursementType;
 import com.revature.models.User;
 import com.revature.services.UserService;
 import com.revature.util.HibernateUtil;
-import com.revature.util.PasswordHash;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 
-import java.io.IOException;
 import java.sql.*;
 import java.util.*;
 
@@ -19,6 +19,8 @@ import java.util.*;
  * A class to interact with the database to CRUD reimbursement objects
  */
 public class ReimbursementsRepository {
+    private static final Logger logger = LogManager.getLogger(ReimbursementsRepository.class);
+
     public ReimbursementsRepository(){
         super();
     }
@@ -27,8 +29,6 @@ public class ReimbursementsRepository {
     /**
      * Adds a reimbursement to the database, Does not handle Images!
      * @param reimbursement the reimbursement to be added to the DB
-     * @throws SQLException e
-     * @throws IOException e
      */
     // TODO add support to persist receipt images to data source
     public boolean addReimbursement(Reimbursement reimbursement) {
@@ -40,7 +40,7 @@ public class ReimbursementsRepository {
         } catch (Exception e){
             session.getTransaction().rollback();
             session.close();
-            e.printStackTrace();
+            logger.error(e.getStackTrace());
             return false;
         }
 
@@ -52,6 +52,10 @@ public class ReimbursementsRepository {
 
     //---------------------------------- READ -------------------------------------------- //
 
+    /**
+     * Returns a list of RbDTOs that represent all reimbursements stored in the database
+     * @return a list of RbDTOs that represent all of the the reimbursements stored in the database
+     */
     @SuppressWarnings("unchecked")
     public List<RbDTO> getAllReimbursements() {
 
@@ -67,7 +71,13 @@ public class ReimbursementsRepository {
         return reimbursements;
     }
 
-    public List<RbDTO> getAllReimbSetByStatus(Integer statusId) {
+    /**
+     * Gets a list of RbDTOs of all reimbursements that have a specific status Id
+     * @param statusId the status to sort reimbursements by when grabbed
+     * @return returns a list of RbDTOs of all reimbursements that have the inputted status Id
+     */
+    @SuppressWarnings("unchecked")
+    public List<RbDTO> getAllReimbSetByStatus(Integer statusId){
         //List<RbDTO> reimbursements = new ArrayList<>();
         Session session = HibernateUtil.getSessionFactory().openSession();
         session.beginTransaction();
@@ -86,13 +96,14 @@ public class ReimbursementsRepository {
      * A method to get Reimbursements by the id of the reimbursement itself
      * @param reimbId The ID of the reimbursement in the database that is requested
      * @return returns an Option Reimbursement object
-     * @throws SQLException e
+     * @throws SQLException Throws an SQLException if there was a problem executing the given statement
      */
+    @SuppressWarnings("unchecked")
     public Optional<Reimbursement> getAReimbByReimbId(Integer reimbId) throws SQLException {
         Session session = HibernateUtil.getSessionFactory().openSession();
         session.beginTransaction();
         String hql = "FROM Reimbursement where id = :reimbId";
-        Query query = session.createQuery(hql);
+        Query<Reimbursement> query = session.createQuery(hql);
         query.setParameter("reimbId",reimbId);
         List<Reimbursement> list = query.list();
         session.getTransaction().commit();
@@ -100,11 +111,19 @@ public class ReimbursementsRepository {
         return Optional.of(list.get(0));
     }
 
+    /**
+     * Gets a specific reimbursement that has the given author Id and reimbursement Id.
+     * @param userId The userId to be searched for
+     * @param reimbId the reimbursement Id to search for
+     * @return returns an Optional reimbursement
+     * @throws SQLException Throws an SQLException if there was a problem executing the given statement
+     */
+    @SuppressWarnings("unchecked")
     public Optional<Reimbursement> getAReimbByReimbIdAndUserId(int userId, int reimbId) throws SQLException {
         Session session = HibernateUtil.getSessionFactory().openSession();
         session.beginTransaction();
         String hql = "FROM Reimbursement where id = :id AND author_id = :author";
-        Query query = session.createQuery(hql);
+        Query<Reimbursement> query = session.createQuery(hql);
 
         query.setParameter("id", reimbId);
         query.setParameter("author", userId);
@@ -122,13 +141,13 @@ public class ReimbursementsRepository {
      * A method to get all of the records for an author given their id
      * @param authorId the ID of the author of the reimbursement
      * @return a set of reimbursements mapped by the MapResultSet method
-     * @throws SQLException e
      */
+    @SuppressWarnings("unchecked")
     public List<RbDTO> getAllReimbSetByAuthorId(Integer authorId){
         Session session = HibernateUtil.getSessionFactory().openSession();
         session.beginTransaction();
         String hql = "FROM Reimbursement where author_id = :authorId";
-        Query query = session.createQuery(hql);
+        Query<Reimbursement> query = session.createQuery(hql);
         query.setParameter("authorId",authorId);
         List<Reimbursement> list = query.list();
         List<RbDTO> r_list = mapResultListToDTO(list);
@@ -142,9 +161,9 @@ public class ReimbursementsRepository {
      * @param authorId the ID of the author of the reimbursement
      * @param reStat the status that the reimbursement is to be set to
      * @return a set of reimbursements mapped by the MapResultSet method
-     * @throws SQLException e
      */
-    public List<RbDTO> getAllReimbSetByAuthorIdAndStatus(Integer authorId, ReimbursementStatus reStat) throws SQLException {
+    @SuppressWarnings("unchecked")
+    public List<RbDTO> getAllReimbSetByAuthorIdAndStatus(Integer authorId, ReimbursementStatus reStat){
         Session session = HibernateUtil.getSessionFactory().openSession();
         session.beginTransaction();
         String hql = "FROM Reimbursement where author_id = :authorId AND reimbursement_status_id = :restat";
@@ -159,9 +178,9 @@ public class ReimbursementsRepository {
      * @param authorId ID of the Author User
      * @param reType the Type to update the record to
      * @return a set of reimbursements mapped by the MapResultSet method
-     * @throws SQLException e
      */
-    public List<RbDTO> getAllReimbSetByAuthorIdAndType(Integer authorId, ReimbursementType reType) throws SQLException {
+    @SuppressWarnings("unchecked")
+    public List<RbDTO> getAllReimbSetByAuthorIdAndType(Integer authorId, ReimbursementType reType){
         Session session = HibernateUtil.getSessionFactory().openSession();
         session.beginTransaction();
         String hql = "FROM Reimbursement where author_id = :authorId AND reimbursement_type_id = :retype";
@@ -171,6 +190,11 @@ public class ReimbursementsRepository {
         return mapResultListToDTO(query.list());
     }
 
+    /**
+     * Gets a list of RbDTOs that are all reimbursements that have a specific type
+     * @param typeId the type id to filter reimbursements by
+     * @return returns a list of RbDTO that are all reimbursements with the specified type
+     */
     public List<RbDTO> getAllReimbSetByType(Integer typeId)  {
         Session session = HibernateUtil.getSessionFactory().openSession();
         session.beginTransaction();
@@ -184,9 +208,9 @@ public class ReimbursementsRepository {
      * A method to get all of the records for a resolver given their id
      * @param resolverId ID of the Resolver User
      * @return a set of reimbursements mapped by the MapResultSet method
-     * @throws SQLException e
      */
-    public List<RbDTO> getAllReimbSetByResolverId(Integer resolverId) throws SQLException {
+    @SuppressWarnings("unchecked")
+    public List<RbDTO> getAllReimbSetByResolverId(Integer resolverId){
         Session session = HibernateUtil.getSessionFactory().openSession();
         session.beginTransaction();
         String hql = "FROM Reimbursement where resolver_id = :id";
@@ -200,9 +224,9 @@ public class ReimbursementsRepository {
      * @param resolverId  ID of the Resolver User
      * @param reStat the status to update the record to
      * @return a set of reimbursements mapped by the MapResultSet method
-     * @throws SQLException e
      */
-    public List<RbDTO> getAllReimbSetByResolverIdAndStatus(Integer resolverId, ReimbursementStatus reStat) throws SQLException {
+    @SuppressWarnings("unchecked")
+    public List<RbDTO> getAllReimbSetByResolverIdAndStatus(Integer resolverId, ReimbursementStatus reStat){
         Session session = HibernateUtil.getSessionFactory().openSession();
         session.beginTransaction();
         String hql = "FROM Reimbursement where resolver_id = :id AND reimbursement_status_id = :restat";
@@ -217,9 +241,9 @@ public class ReimbursementsRepository {
      * @param resolverId ID of the Resolver User
      * @param reType type of Reimbursements to select by
      * @return a set of reimbursements mapped by the MapResultSet method
-     * @throws SQLException e
      */
-    public List<RbDTO> getAllReimbSetByResolverIdAndType(Integer resolverId, ReimbursementType reType) throws SQLException {
+    @SuppressWarnings("unchecked")
+    public List<RbDTO> getAllReimbSetByResolverIdAndType(Integer resolverId, ReimbursementType reType){
         Session session = HibernateUtil.getSessionFactory().openSession();
         session.beginTransaction();
         String hql = "FROM Reimbursement where resolver_id = :id AND reimbursement_type_id = :retype";
@@ -230,16 +254,22 @@ public class ReimbursementsRepository {
     }
 
     //---------------------------------- UPDATE -------------------------------------------- //
+
+    /**
+     * Takes in a reimbursement and updates a stored reimbursement
+     * @param reimb the reimbursement instance to save
+     * @return returns true if it was stored, false if it was not
+     */
     public boolean updateEMP(Reimbursement reimb) {
         Session session = HibernateUtil.getSessionFactory().openSession();
         session.beginTransaction();
         try {
-            //session.evict(newUser)?
             session.merge(reimb);
         } catch (Exception e){
             session.getTransaction().rollback();
             session.close();
-            e.printStackTrace();
+
+            logger.error(e.getStackTrace());
             return false;
         }
         session.getTransaction().commit();
@@ -247,6 +277,13 @@ public class ReimbursementsRepository {
         return true;
     }
 
+    /**
+     * Updates a spcified reimbursement to either be approved or denied
+     * @param user The user who is approving or denying the reimbursement
+     * @param statusId the status id to update to
+     * @param reimbId the id of the reimbursement being updating
+     * @return returns true if it was updated, false if the reimbursement was not updated.
+     */
     public boolean updateFIN(User user, Integer statusId, Integer reimbId) {
         Session session = HibernateUtil.getSessionFactory().openSession();
         session.beginTransaction();
@@ -263,7 +300,7 @@ public class ReimbursementsRepository {
             session.close();
             return true;
         }catch(Exception e) {
-            e.printStackTrace();
+            logger.error(e.getStackTrace());
             session.getTransaction().rollback();
             session.close();
             return false;
@@ -275,9 +312,8 @@ public class ReimbursementsRepository {
      * @param reimbId The ID of the reimbursement in the database that is requested
      * @param timestamp an SQL timestamp object to set the time resolved to
      * @return returns true if one and only one record was updated
-     * @throws SQLException e
      */
-    public boolean updateResolvedTimeStampByReimbId(Integer reimbId, Timestamp timestamp) throws SQLException {
+    public boolean updateResolvedTimeStampByReimbId(Integer reimbId, Timestamp timestamp){
         Session session = HibernateUtil.getSessionFactory().openSession();
         session.beginTransaction();
         session.getTransaction().commit();
@@ -291,7 +327,7 @@ public class ReimbursementsRepository {
                 return true;
             }
         }catch(Exception e) {
-            e.printStackTrace();
+            logger.error(e.getStackTrace());
             session.getTransaction().rollback();
         }
         session.close();
@@ -303,9 +339,8 @@ public class ReimbursementsRepository {
      * @param reimbId The ID of the reimbursement in the database that is requested
      * @param resolverId the ID of the user that resolves the record to update the record to
      * @return returns true if one and only one record was updated
-     * @throws SQLException e
      */
-    public boolean updateResolverIdByReimbId(Integer reimbId, Integer resolverId) throws SQLException {
+    public boolean updateResolverIdByReimbId(Integer reimbId, Integer resolverId){
         Session session = HibernateUtil.getSessionFactory().openSession();
         session.beginTransaction();
         session.getTransaction().commit();
@@ -320,7 +355,7 @@ public class ReimbursementsRepository {
                 return true;
             }
         }catch(Exception e) {
-            e.printStackTrace();
+            logger.error(e.getStackTrace());
             session.getTransaction().rollback();
         }
         session.close();
@@ -332,9 +367,8 @@ public class ReimbursementsRepository {
      * @param reimbId The ID of the reimbursement in the database that is requested
      * @param reimbursementType the type to update the record to
      * @return returns true if one and only one record was updated
-     * @throws SQLException e
      */
-    public boolean updateReimbursementTypeByReimbId(Integer reimbId, ReimbursementType reimbursementType) throws SQLException {
+    public boolean updateReimbursementTypeByReimbId(Integer reimbId, ReimbursementType reimbursementType){
         Session session = HibernateUtil.getSessionFactory().openSession();
         session.beginTransaction();
         session.getTransaction().commit();
@@ -348,7 +382,7 @@ public class ReimbursementsRepository {
                 return true;
             }
         }catch(Exception e) {
-            e.printStackTrace();
+            logger.error(e.getStackTrace());
             session.getTransaction().rollback();
         }
         session.close();
@@ -360,9 +394,8 @@ public class ReimbursementsRepository {
      * @param reimbId The ID of the reimbursement in the database that is requested
      * @param newReimbStatus the status to update the record to
      * @return returns true if one and only one record was updated
-     * @throws SQLException e
      */
-    public boolean updateReimbursementStatusByReimbId(Integer reimbId, ReimbursementStatus newReimbStatus) throws SQLException {
+    public boolean updateReimbursementStatusByReimbId(Integer reimbId, ReimbursementStatus newReimbStatus){
         Session session = HibernateUtil.getSessionFactory().openSession();
         session.beginTransaction();
         session.getTransaction().commit();
@@ -376,7 +409,7 @@ public class ReimbursementsRepository {
                 return true;
             }
         }catch(Exception e) {
-            e.printStackTrace();
+            logger.error(e.getStackTrace());
             session.getTransaction().rollback();
         }
         session.close();
@@ -390,9 +423,8 @@ public class ReimbursementsRepository {
      * A method to delete a single Reimbursement from the database
      * @param reimbId the ID of the record to be deleted
      * @return returns true if one and only one record is updated
-     * @throws SQLException e
      */
-    public boolean delete(Integer reimbId) throws SQLException {
+    public boolean delete(Integer reimbId){
         Session session = HibernateUtil.getSessionFactory().openSession();
         session.beginTransaction();
         session.getTransaction().commit();
@@ -404,7 +436,7 @@ public class ReimbursementsRepository {
                 return true;
             }
         }catch(Exception e) {
-            e.printStackTrace();
+            logger.error(e.getStackTrace());
             session.getTransaction().rollback();
         }
         session.close();
@@ -413,6 +445,11 @@ public class ReimbursementsRepository {
 
     //---------------------------------- UTIL -------------------------------------------- //
 
+    /**
+     * A helper method that converts a list of reimbursements into a list of RbDTOs.
+     * @param reimbursements the list of reimbursements to be converted
+     * @return returns a list of RbDTOs that represent the reimbursements.
+     */
     private List<RbDTO> mapResultListToDTO(List<Reimbursement> reimbursements) {
         List<RbDTO> reimbs = new ArrayList<>();
         for(Reimbursement objs: reimbursements) {
@@ -426,7 +463,6 @@ public class ReimbursementsRepository {
             rbDTO.setType(objs.getReimbursementStatus().toString());
             reimbs.add(rbDTO);
         }
-
         return reimbs;
     }
 }
