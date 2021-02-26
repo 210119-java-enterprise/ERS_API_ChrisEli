@@ -8,11 +8,11 @@ import java.util.Objects;
  * Base constructs for users, store only the integer representation of roles in the db for easier role checking
  */
 @Entity
-@Table
+@Table(name = "ERS_USERS")
 public class User {
 
-    @Id @GeneratedValue
-    @Column(name = "ERS_USER_ID")
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private int userId;
 
     @Column(name = "USERNAME", unique = true, nullable = false)
@@ -30,8 +30,9 @@ public class User {
     @Column(name = "EMAIL", nullable = false, unique = true)
     private String email;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "ROLE_ID")
+    //@ManyToOne(optional = false)
+    //@JoinColumn(name = "ROLE_ID")
+    @Column(name = "user_ROLE_ID")
     private Integer userRole;
     public User() {
         super();
